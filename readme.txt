@@ -14,6 +14,7 @@ non parallel:
 	void generate_array (struct tablo **);
 	void print_array (struct tablo *);
 	void read_array (struct tablo **, char *);
-	void max (struct tablo *, struct tablo **);	size_t new_size (int);
+	void max (struct tablo *, struct tablo **);	
+	size_t new_size (int);
 	size_t file_size (FILE *);
 	struct tablo * init_tablo (size_t);
