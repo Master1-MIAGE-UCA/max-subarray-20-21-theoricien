@@ -42,8 +42,8 @@ typedef enum _EMODE
 // Array representation
 struct tablo
 {
-	int    * tab;
-	int    size;
+    int    * tab;
+    int    size;
 };
 
 // Program utils
@@ -65,10 +65,10 @@ size_t file_size (FILE *);
 void read_array (struct tablo **, char *);
 
 // Max Prefix/Suffix of a struct tablo
-void max_montee (struct tablo *, struct tablo *);
+void max_montee (EMODE, struct tablo *, struct tablo *);
 void max_descente (struct tablo *, struct tablo *);
 void max_final (struct tablo *,struct tablo *);
-void max (struct tablo *, struct tablo **);
+void max (EMODE, struct tablo *, struct tablo **);
 
 // Max Subarray/Subsequence Problem
 void find_max_subarray (struct tablo *, struct tablo *);
@@ -112,42 +112,42 @@ main (int  argc,
     M = init_tablo(Q->size);
 
     sum(PREFIX, Q, &PSUM);
+    _debug("PSUM: "); print_array(PSUM);
     sum(SUFFIX, Q, &SSUM);
 
-    print_array(PSUM);
-    print_array(SSUM);
+    _debug("SSUM: "); print_array(SSUM);
 
-    max(PSUM, &SMAX);
-    max(SSUM, &PMAX);
+    max(SUFFIX, PSUM, &SMAX);
+    max(PREFIX, SSUM, &PMAX);
 
-    print_array(SMAX);
-    print_array(PMAX);
+    _debug("SMAX: "); print_array(SMAX);
+    _debug("PMAX: "); print_array(PMAX);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
     for (i = 1; i < Q->size; i++)
     {
-        Ms->tab[i] = PMAX->tab[PMAX->size / 2 + i - 1]
-            - SSUM->tab[SSUM->size - i];
-        _debug("\tMs->tab[%d] = %d - %d\n",
+        Ms->tab[i] = PMAX->tab[i] - SSUM->tab[i] + Q->tab[i];
+        _debug("\tMs->tab[%d] = %d - %d + %d\n",
             i,
-            PMAX->tab[PMAX->size / 2 + i - 1],
-            SSUM->tab[SSUM->size - i]);
+            PMAX->tab[i],
+            SSUM->tab[i],
+            Q->tab[i]);
 
-        Mp->tab[i] = SMAX->tab[SMAX->size - i]
-            - PSUM->tab[PSUM->size / 2 + i - 1];
-        _debug("\tMp->tab[%d] = %d - %d\n",
+        Mp->tab[i] = SMAX->tab[i] - PSUM->tab[i] + Q->tab[i];
+        _debug("\tMp->tab[%d] = %d - %d + %d\n",
             i,
-            SMAX->tab[SMAX->size - i],
-            PSUM->tab[PSUM->size / 2 + i - 1]);
+            SMAX->tab[i],
+            PSUM->tab[i],
+            Q->tab[i]);
 
-        _debug("M->tab[%d] = %d + %d + %d\n",
+        _debug("M->tab[%d] = %d + %d - %d\n",
             i,
             Ms->tab[i],
             Mp->tab[i],
             Q->tab[i]);
-        M->tab[i] = Ms->tab[i] + Mp->tab[i] + Q->tab[i];
+        M->tab[i] = Ms->tab[i] + Mp->tab[i] - Q->tab[i];
     }
 
     print_array(M);
@@ -164,19 +164,19 @@ main (int  argc,
 void
 generate_array (struct tablo ** arr)
 {
-	//size_t i;
+    //size_t i;
 
-	//construction d'un tableau pour tester
+    //construction d'un tableau pour tester
     *arr = calloc (sizeof(struct tablo), 1);
     // 524288 + 1 // 20
-	(*arr)->size = (1 << 4) + 1;
-	(*arr)->tab = calloc ((*arr)->size * sizeof(int), sizeof(int));
-	(*arr)->tab[0] = 0; // useless
+    (*arr)->size = (1 << 4) + 1;
+    (*arr)->tab = calloc ((*arr)->size * sizeof(int), sizeof(int));
+    (*arr)->tab[0] = 0; // useless
     /*
-	for (i = 1; i < (*arr)->size; i++)
-	{
-		(*arr)->tab[i] = (unsigned) rand() % 50 - 25;
-	}*/
+    for (i = 1; i < (*arr)->size; i++)
+    {
+        (*arr)->tab[i] = (unsigned) rand() % 50 - 25;
+    }*/
     (*arr)->tab[0] = 0;
     (*arr)->tab[1] = 3;
     (*arr)->tab[2] = 2;
@@ -243,15 +243,15 @@ _debug (const char * fmt,
 void
 print_array (struct tablo * tmp)
 {
-	int size = tmp->size;
-	int i;
+    int size = tmp->size;
+    int i;
 
-	_debug("[%i", tmp->tab[1]);
-	for (i = 2; i < size; i++)
-	{
-		_debug(", %i", tmp->tab[i]);
-	}
-	_debug("]\n");
+    _debug("[%i", tmp->tab[1]);
+    for (i = 2; i < size; i++)
+    {
+        _debug(", %i", tmp->tab[i]);
+    }
+    _debug("]\n");
 }
 
 /*
@@ -263,12 +263,12 @@ print_array (struct tablo * tmp)
 struct tablo *
 init_tablo (size_t size)
 {
-	struct tablo * tmp;
+    struct tablo * tmp;
 
-	tmp = (struct tablo *) calloc (sizeof(struct tablo), sizeof(int));
-	tmp->size = size;
-	tmp->tab = calloc (size * sizeof(int), sizeof(int));
-	return tmp;
+    tmp = (struct tablo *) calloc (sizeof(struct tablo), sizeof(int));
+    tmp->size = size;
+    tmp->tab = calloc (size * sizeof(int), sizeof(int));
+    return tmp;
 }
 
 /*
@@ -282,8 +282,8 @@ init_tablo (size_t size)
  */
 void
 montee (EMODE mode,
-		struct tablo * source,
-		struct tablo * destination)
+        struct tablo * source,
+        struct tablo * destination)
 {
     size_t l;
     size_t j;
@@ -300,7 +300,7 @@ montee (EMODE mode,
         // From MID to RIGHT
         for (i = 0; i < source->size; i++)
         {
-            destination->tab[destination->size / 2 + i - 1] =
+            destination->tab[(destination->size - source->size) + i] =
                 source->tab[i];
         }
     } else if (mode == SUFFIX)
@@ -308,7 +308,7 @@ montee (EMODE mode,
         // from RIGHT to MID
         for (i = 0; i < source->size; i++)
         {
-            destination->tab[destination->size / 2 + i - 1] =
+            destination->tab[(destination->size - source->size) + i] =
                 source->tab[source->size - i];
         }
     }
@@ -323,13 +323,13 @@ montee (EMODE mode,
         for (j = POW2(l - 1); j < POW2(l); j++)
         {
             /*_debug("destination->tab[%d] = %d = %d + %d\n",
-				j,
-				destination->tab[j],
-				destination->tab[2 * j],
-				destination->tab[(2 * j) + 1]);*/
+                j,
+                destination->tab[j],
+                destination->tab[2 * j],
+                destination->tab[(2 * j) + 1]);*/
 
             destination->tab[j] = destination->tab[2 * j]
-	    	      + destination->tab[(2 * j) + 1];
+                  + destination->tab[(2 * j) + 1];
         }
     }
 }
@@ -345,7 +345,7 @@ montee (EMODE mode,
  */
 void
 descente (struct tablo * a,
-	  	  struct tablo * b)
+          struct tablo * b)
 {
     size_t l;
     size_t j;
@@ -358,7 +358,7 @@ descente (struct tablo * a,
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (j = POW2(l - 1); j < POW2(l); j ++)
+        for (j = POW2(l); j < POW2(l + 1); j ++)
         {
             // if even(j)
             if (j % 2 == 0)
@@ -415,8 +415,10 @@ sum (EMODE mode,
      struct tablo * source,
      struct tablo ** dest)
 {
+    int i;
     struct tablo * b;
     struct tablo * a;
+    struct tablo * res;
 
     a = init_tablo(new_size(source->size));
     montee(mode, source, a);
@@ -428,11 +430,27 @@ sum (EMODE mode,
 
     final(a, b);
     //print_array(b);
+    res = init_tablo(source->size);
 
-    *dest = b;
+    if (mode == PREFIX)
+    {
+        for (i = b->size - res->size; i < b->size; i++)
+        {
+            res->tab[i - (b->size - res->size)] = b->tab[i];
+        }
+    } else if (mode == SUFFIX)
+    {
+        for (i = 0; i < res->size; i++)
+        {
+            res->tab[i] = b->tab[b->size - i];
+        }
+    }
+    *dest = res;
 
     free(a->tab);
     free(a);
+    free(b->tab);
+    free(b);
 }
 
 /*
@@ -444,8 +462,9 @@ sum (EMODE mode,
  *     dest     The binary tree, his size is source->size * 2
  */
 void
-max_montee (struct tablo * source,
-		    struct tablo * destination)
+max_montee (EMODE mode,
+            struct tablo * source,
+            struct tablo * destination)
 {
     size_t l;
     size_t j;
@@ -457,29 +476,41 @@ max_montee (struct tablo * source,
     // a la bonne position
     // on suppose que le malloc de destination a ete fait avant
 
-    for (i = 0; i < source->size / 2; i++)
+    if (mode == PREFIX)
     {
-        destination->tab[destination->size / 2 + i - 1] =
-            source->tab[source->size - i];
+        // From MID to RIGHT
+        for (i = 0; i < source->size; i++)
+        {
+            destination->tab[destination->size - source->size + i] =
+                source->tab[i];
+        }
+    } else if (mode == SUFFIX)
+    {
+        // from RIGHT to MID
+        for (i = 0; i < source->size; i++)
+        {
+            destination->tab[destination->size - source->size + i] =
+                source->tab[source->size - i];
+        }
     }
 
     // Boucle de calcul pour la montee dans l'arbre/tableau
-    m = LOG2(source->size / 2);
+    m = LOG2(source->size);
     for (l = m; l > 0; l--)
     {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (j = POW2(l - 1); j < POW2(l); j ++)
+        for (j = POW2(l - 1); j < POW2(l); j++)
         {
             /*_debug("destination->tab[%d] = %d = fmax(%d, %d)\n",
-				j,
-				destination->tab[j],
-				destination->tab[2 * j],
-				destination->tab[(2 * j) + 1]);*/
+                j,
+                destination->tab[j],
+                destination->tab[2 * j],
+                destination->tab[(2 * j) + 1]);*/
 
             destination->tab[j] = fmax(destination->tab[2 * j],
-	    	      destination->tab[(2 * j) + 1]);
+                  destination->tab[(2 * j) + 1]);
         }
     }
 }
@@ -496,7 +527,7 @@ max_montee (struct tablo * source,
  */
 void
 max_descente (struct tablo * a,
-	  	      struct tablo * b)
+              struct tablo * b)
 {
     size_t l;
     size_t j;
@@ -509,7 +540,7 @@ max_descente (struct tablo * a,
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (j = POW2(l - 1); j < POW2(l); j++)
+        for (j = POW2(l); j < POW2(l + 1); j++)
         {
             // si pair(j)
             if (j % 2 == 0)
@@ -558,14 +589,17 @@ max_final (struct tablo * a,
  *     dest     "struct tablo **", where we will redirect the output
  */
 void
-max (struct tablo * source,
+max (EMODE mode,
+     struct tablo * source,
      struct tablo ** dest)
 {
+    int i;
     struct tablo * b;
     struct tablo * a;
+    struct tablo * res;
 
     a = init_tablo(new_size(source->size));
-    max_montee(source, a);
+    max_montee(mode, source, a);
     //print_array(a);
 
     b = init_tablo(new_size(source->size));
@@ -574,8 +608,22 @@ max (struct tablo * source,
 
     max_final(a, b);
     //print_array(b);
+    res = init_tablo(source->size);
 
-    *dest = b;
+    if (mode == PREFIX)
+    {
+        for (i = b->size - res->size; i < b->size; i++)
+        {
+            res->tab[i - (b->size - res->size)] = b->tab[i];
+        }
+    } else if (mode == SUFFIX)
+    {
+        for (i = 0; i < res->size; i++)
+        {
+            res->tab[i] = b->tab[b->size - i];
+        }
+    }
+    *dest = res;
 
     free(a->tab);
     free(a);
