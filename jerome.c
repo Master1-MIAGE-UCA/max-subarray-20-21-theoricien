@@ -153,6 +153,24 @@ main (int  argc,
     print_array(M);
 
     find_max_subarray(Q, M);
+
+    free(Q->tab);
+    free(Q);
+    free(PSUM->tab);
+    free(PSUM);
+    free(SSUM->tab);
+    free(SSUM);
+    free(PMAX->tab);
+    free(PMAX);
+    free(SMAX->tab);
+    free(SMAX);
+    free(Ms->tab);
+    free(Ms);
+    free(Mp->tab);
+    free(Mp);
+    free(M->tab);
+    free(M);
+    return EXIT_SUCCESS;
 }
 
 /*
@@ -627,6 +645,8 @@ max (EMODE mode,
 
     free(a->tab);
     free(a);
+    free(b->tab);
+    free(b);
 }
 
 /*
